@@ -1,10 +1,10 @@
 import asyncio
-import os
 import configparser
+import traceback
 from dotenv import dotenv_values
 import requests
 from twitchAPI import twitch, oauth
-import SendInput
+from winsdk.windows.media.control import GlobalSystemMediaTransportControlsSessionManager as MediaManager
 
 ENV = dotenv_values()
 
@@ -20,6 +20,17 @@ config = configparser.ConfigParser()
 config.read(CONFIG_PATH)
 if ('tokens' not in config):
   config.add_section('tokens')
+
+
+# send play/pause signal with windows sdk
+async def sendMediaControl(action: str):
+  manager = await MediaManager.request_async()
+  session = manager.get_current_session()
+
+  await {
+      'play': session.try_play_async,
+      'pause': session.try_pause_async
+  }[action]()
 
 
 # returns streamelements api url at given endpoint with channel id
@@ -104,7 +115,7 @@ async def main(id):
           print("No video playing")
           await asyncio.sleep(1)
           # send play/pause command to the os
-          SendInput.SendKey(SendInput.VK_MEDIA_PLAY_PAUSE)
+          await sendMediaControl('play')
 
       else:
         # check if there's a new video in queue ready to be played.
@@ -118,7 +129,7 @@ async def main(id):
           print("Skip message sent")
           is_playing = True
           # send play/pause command to the os
-          SendInput.SendKey(SendInput.VK_MEDIA_PLAY_PAUSE)
+          await sendMediaControl('pause')
 
       await asyncio.sleep(3)
 
@@ -158,3 +169,6 @@ try:
 
 except KeyboardInterrupt:
   None
+except Exception as err:
+  with open("MediashareAutoskip-crash.txt", 'w') as f:
+    traceback.TracebackException.from_exception(err).print(file=f)
