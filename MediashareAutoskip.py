@@ -1,12 +1,18 @@
 import asyncio
 import configparser
+import os
+import sys
 import traceback
 from dotenv import dotenv_values
 import requests
 from twitchAPI import twitch, oauth
 from winsdk.windows.media.control import GlobalSystemMediaTransportControlsSessionManager as MediaManager
 
-ENV = dotenv_values()
+# load .env file
+extDataDir = os.getcwd()
+if getattr(sys, 'frozen', False):
+  extDataDir = sys._MEIPASS
+ENV = dotenv_values(dotenv_path=os.path.join(extDataDir, '.env'))
 
 CONFIG_PATH = 'MediashareAutoskip.ini'
 
